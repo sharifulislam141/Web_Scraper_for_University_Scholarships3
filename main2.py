@@ -27,7 +27,7 @@ driver.get('https://www.sydney.edu.au/courses/search.html?search-type=course&pag
 time.sleep(3)
 
 page_count = 1
-max_pages = 58
+max_pages = 2
 print(f"Collecting data from page {page_count}")
 courses_data = []
 
@@ -44,7 +44,6 @@ while page_count <= max_pages:
             
             baseUrl = link
             jsonurl1 = baseUrl.replace('.html', '.explorer.json')
-            jsonurl2 = 'https://www.sydney.edu.au/bin/courses/course-common-content.json'
             jsonurl3 = baseUrl.replace('.html', '.coredata.json')
 
             headers = {
@@ -77,23 +76,6 @@ while page_count <= max_pages:
                 continue  
 
             try:
-                # Fetch JSON 2 (course-common-content.json)
-                response2 = requests.get(jsonurl2, headers=headers)
-                response2.raise_for_status()
-                data2 = response2.json()
-                
-                data_dict['applicationProcess'] = data2.get('how_to_apply', {}).get('uac-message', {}).get('master', {}).get('jcr:content', {}).get('root', {}).get('content_container', {}).get('text', '')
-                data_dict['requiredQualifications'] = data2.get('admission_criteria', {}).get('secondary-qualifications', {}).get('master', {}).get('jcr:content', {}).get('root', {}).get('content_container', {}).get('text', '')
-                data_dict['prerequisites'] = data2.get('prerequisite', {}).get('master', {}).get('jcr:content', {}).get('root', {}).get('accordion_wide', {}).get('oI9x55bN', {}).get('content_container', {}).get('text', '')
-                englishLanguageRequirements1 = data2.get('english-language-requirements', {}).get('standard', {}).get('jcr:content', {}).get('root', {}).get('content_container', {}).get('text', '')
-                englishLanguageRequirements2 = data2.get('english-language-requirements', {}).get('standard', {}).get('jcr:content', {}).get('root', {}).get('accordion', {}).get('links', '')
-                data_dict['englishLanguageRequirements'] = f"{englishLanguageRequirements1} {englishLanguageRequirements2}"
-
-            except requests.RequestException as e:
-                print(f"Error fetching JSON 2 for {baseUrl}: {e}")
-                continue  
-            
-            try:
                 # Fetch JSON 3 (.coredata.json)
                 response3 = requests.get(jsonurl3)
                 response3.raise_for_status()
@@ -109,7 +91,7 @@ while page_count <= max_pages:
                 data_dict['creditPoints'] = data3.get('attributes', {}).get('creditPoints', '')
                 data_dict['intakeYears'] = data3.get('attributes', {}).get('offeredYears', '')
 
-           
+                # Handle latest fees and English requirements
                 fees_areas_by_year = data3.get('attributes', {}).get('feeSummary', {}).get('feesByYear', [])
                 if fees_areas_by_year:
                     latest_fees = max(fees_areas_by_year, key=lambda x: x['year']).get('fees', '')
@@ -124,8 +106,8 @@ while page_count <= max_pages:
                 int_score_by_year = data3.get('attributes', {}).get('entryRequirements', {}).get('entryCode', [])
                 if int_score_by_year:
                     latest_year_int_score = max(int_score_by_year, key=lambda x: x['year'])
-                    data_dict['atarInternationa_latest'] = latest_year_int_score['qualifications'][1].get('intScore', '')
-                    data_dict['atarDomestic_latest'] = latest_year_int_score['qualifications'][1].get('domScore', '')
+                    data_dict['atarInternational'] = latest_year_int_score['qualifications'][1].get('intScore', '')
+                    data_dict['atarDomestic'] = latest_year_int_score['qualifications'][1].get('domScore', '')
 
                     # For 2025
                     year_2025_data_int_score = next((item for item in int_score_by_year if item['year'] == 2025), None)
